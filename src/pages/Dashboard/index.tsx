@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component, useEffect, useState } from 'react';
 
 import Header from '../../components/Header';
 import api from '../../services/api';
@@ -7,41 +7,43 @@ import ModalAddFood from '../../components/ModalAddFood';
 import ModalEditFood from '../../components/ModalEditFood';
 import { FoodsContainer } from './styles';
 
-class Dashboard extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      foods: [],
-      editingFood: {},
-      modalOpen: false,
-      editModalOpen: false,
+interface IFood {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+  image: string;
+}
+
+export default function Dashboard() {
+  const [foods, setFoods] = useState<IFood[]>([]);
+  const [editingFood, setEditingFood] = useState<IFood>({} as IFood);
+  const [modalOpen, setModalOpen] = useState(false)
+  const [ editModalOpen, setEditModalOpen] = useState(false);
+
+  useEffect(() => {
+    async function getFood() {
+      const response = await api.get('/foods');
+      setFoods(response.data);
     }
-  }
+    getFood()
+  }, [])
 
-  async componentDidMount() {
-    const response = await api.get('/foods');
-
-    this.setState({ foods: response.data });
-  }
-
-  handleAddFood = async food => {
-    const { foods } = this.state;
-
+  const handleAddFood = async (food: Omit<IFood, 'id' | 'available'>): Promise<void> => {
     try {
       const response = await api.post('/foods', {
         ...food,
         available: true,
       });
 
-      this.setState({ foods: [...foods, response.data] });
+      setFoods([...foods, response.data]);
     } catch (err) {
       console.log(err);
     }
   }
 
-  handleUpdateFood = async food => {
-    const { foods, editingFood } = this.state;
-
+  const handleUpdateFood = async (food: Omit<IFood, 'id' | 'available'>): Promise<void>  => {
     try {
       const foodUpdated = await api.put(
         `/foods/${editingFood.id}`,
@@ -52,11 +54,20 @@ class Dashboard extends Component {
         f.id !== foodUpdated.data.id ? f : foodUpdated.data,
       );
 
-      this.setState({ foods: foodsUpdated });
+     setFoods(foodsUpdated);
     } catch (err) {
       console.log(err);
     }
   }
+
+}
+
+class Dashboard extends Component {
+  
+
+
+  
+  
 
   handleDeleteFood = async id => {
     const { foods } = this.state;
